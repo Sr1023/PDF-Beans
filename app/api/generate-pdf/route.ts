@@ -79,29 +79,11 @@ async function launchBrowser(): Promise<{ browser: Browser; strategy: string }> 
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       errors.push(`${label}: ${message}`);
-
-      const missingLibMatch = message.match(/error while loading shared libraries: ([^:]+):/i);
-      if (missingLibMatch?.[1]) {
-        missingLibraries.add(missingLibMatch[1]);
-      }
     }
   }
 
-  if (missingLibraries.size > 0) {
-    throw new BrowserLaunchError(
-      `Failed to launch Chromium because required system libraries are missing: ${Array.from(missingLibraries).join(', ')}`,
-      'missing-dependencies',
-      {
-        missingLibraries: Array.from(missingLibraries),
-        attempts: errors,
-      },
-    );
-  }
-
-  throw new BrowserLaunchError(
+  throw new Error(
     `Failed to launch Chromium with Puppeteer. Tried strategies: ${errors.join('; ')}`,
-    undefined,
-    { attempts: errors },
   );
 }
 
@@ -181,19 +163,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Failed to generate PDF', error);
-
-    if (error instanceof BrowserLaunchError && error.code === 'missing-dependencies') {
-      return NextResponse.json(
-        {
-          ok: false,
-          message:
-            'Chromium could not start because required system libraries are missing. Install them by running install-deps-simple.sh with sudo/root access, then restart the Next.js server.',
-          details: error.metadata,
-        },
-        { status: 500 },
-      );
-    }
-
     const message =
       error instanceof Error ? error.message : 'An unexpected error occurred while generating the PDF.';
 
