@@ -53,8 +53,20 @@ const STRATEGIES: Array<{
   },
 ];
 
+class BrowserLaunchError extends Error {
+  constructor(
+    message: string,
+    readonly code?: 'missing-dependencies',
+    readonly metadata: Record<string, unknown> = {},
+  ) {
+    super(message);
+    this.name = 'BrowserLaunchError';
+  }
+}
+
 async function launchBrowser(): Promise<{ browser: Browser; strategy: string }> {
   const errors: string[] = [];
+  const missingLibraries = new Set<string>();
 
   for (const { label, options } of STRATEGIES) {
     try {
